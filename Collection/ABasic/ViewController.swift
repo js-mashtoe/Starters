@@ -14,7 +14,7 @@ class ViewController: UIViewController, UICollectionViewDelegateFlowLayout, UICo
   var didSetupConstraints: Bool = false
   
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    return 14
+    return 3
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -30,7 +30,9 @@ class ViewController: UIViewController, UICollectionViewDelegateFlowLayout, UICo
 //
 //    cell.accessibilityIdentifier = "some-AID"
 //    cell.isAccessibilityElement = false
-    cell.addSubview(t1Button)
+//    cell.accessibilityLabel = "This is me"
+//
+//    cell.addSubview(t1Button)
     return cell
   }
   
@@ -43,13 +45,17 @@ class ViewController: UIViewController, UICollectionViewDelegateFlowLayout, UICo
     super.viewDidLoad()
     let layout: UICollectionViewFlowLayout = UICollectionViewFlowLayout()
     layout.sectionInset = UIEdgeInsets(top: 20, left: 10, bottom: 10, right: 10)
-    layout.itemSize = CGSize(width: 90, height: 120)
+    layout.itemSize = CGSize(width: UIScreen.main.bounds.width-20, height: 120)
+    layout.scrollDirection = .vertical
     
     collectionView = UICollectionView(frame: self.view.frame, collectionViewLayout: layout)
     collectionView.dataSource = self
     collectionView.delegate = self
     collectionView.register(ACell.self, forCellWithReuseIdentifier: "Cell")
     collectionView.backgroundColor = UIColor.white
+    collectionView.allowsSelection = true
+    
+    collectionView.isAccessibilityElement = false
     self.view.addSubview(collectionView)
 //    view.setNeedsUpdateConstraints()
   }
@@ -122,24 +128,74 @@ class ViewController: UIViewController, UICollectionViewDelegateFlowLayout, UICo
 }
 
 class ACell: UICollectionViewCell {
-  var me: UILabel!
+  var desc: UILabel!
+  var actn: UIButton!
+  var stat: State  = .buy
+  var stackView: UIStackView!
+  var elements: [Any]!
+  
+  enum State { case buy, sell }
   
   override init(frame: CGRect) {
     super.init(frame: frame)
-    self.me = UILabel(frame: CGRect(x: 0, y: 0, width: frame.width, height: frame.height))
-//    self.me.setTitle( "ME" , for: .normal)
-    self.me.text = "meB"
+    self.desc = UILabel(frame: CGRect(x: 0, y: 0, width: frame.width/2, height: frame.height))
+    self.desc.text = "Something-else"
+    self.desc.textAlignment = .center
+    self.desc.isUserInteractionEnabled = true
+    let tap = UITapGestureRecognizer(target: self, action: #selector(PressLabel))
+    self.desc.addGestureRecognizer(tap)
+    
+    self.actn = UIButton(frame: CGRect(x: 0, y: 0, width: frame.width/2, height: frame.height))
+    self.actn.setTitle( "action" , for: .normal)
+    self.actn.addTarget(self, action: #selector(PressButton), for: .touchDown)
 
-    self.me.textAlignment = .center
-    self.me.isUserInteractionEnabled = true
-    let tap = UITapGestureRecognizer(target: self, action: #selector(Press))
+    elements = []
+  
+    elements.append(self.desc)
+    elements.append(self.actn)
+    self.accessibilityContainerType = .list
+    self.accessibilityElements = elements
+    self.accessibilityFrame = self.frame
+    self.isAccessibilityElement = false
 
-    self.me.addGestureRecognizer(tap)
-    contentView.addSubview(self.me)
+    stackView = UIStackView(frame: CGRect(x: 0, y: 0, width: frame.width/2, height: frame.height))
+    stackView.alignment = .center
+    stackView.axis = .vertical
+    stackView.spacing = 4
+    stackView.distribution = .fillEqually
+    stackView.addArrangedSubview(self.desc)
+    stackView.addArrangedSubview(self.actn)
+    stackView.isAccessibilityElement = false
+    contentView.addSubview(self.stackView)
+    
+    
   }
   
-  @IBAction func Press(sender: UITapGestureRecognizer) {
-    print("press")
+  override func accessibilityElementCount() -> Int {
+    return elements.count
+  }
+  override func accessibilityElement(at: Int) -> Any? {
+    return elements[at]
+  }
+  override func index(ofAccessibilityElement: Any) -> Int {
+    return 0
+  }
+
+  
+  
+  
+  @IBAction func PressLabel(sender: UITapGestureRecognizer) {
+    print("PressLabel")
+    self.desc.text = "Something-else"
+  }
+  
+  @IBAction func PressButton(sender: UITapGestureRecognizer) {
+    stat = stat == .buy ? .sell : .buy
+    switch stat {
+    case .buy: self.desc.text = "Something-buy"
+    case .sell: self.desc.text = "Something-sell"
+    }
+    print("PressButton")
   }
   
   required init?(coder aDecoder: NSCoder) {
